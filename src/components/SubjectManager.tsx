@@ -36,19 +36,26 @@ export function SubjectManager({ selectedClass }: SubjectManagerProps) {
 
   const fetchSubjects = async () => {
     try {
+      console.log('Fetching subjects for class:', selectedClass);
+      
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
         .eq('class', selectedClass)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Fetched subjects:', data);
       setSubjects(data || []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch subjects",
+        description: `Failed to fetch subjects: ${error.message}`,
         variant: "destructive",
       });
     }
