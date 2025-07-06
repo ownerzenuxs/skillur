@@ -1,0 +1,23 @@
+
+project_id = "lbjfbopymuomicyelpnd"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54324
+external_url = "http://localhost:54324"
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+anonymous_users_enabled = false
+password_min_length = 6
+
+[storage]
+enabled = true
+port = 54325
+image_transformation = {enabled = true}
