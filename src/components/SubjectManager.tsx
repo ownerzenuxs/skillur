@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BookOpen, Plus, Edit, Trash2, Calculator, Beaker, Zap, Leaf, Globe, Monitor } from 'lucide-react';
 
-export function SubjectManager() {
+interface SubjectManagerProps {
+  selectedClass: string;
+}
+
+export function SubjectManager({ selectedClass }: SubjectManagerProps) {
   const [subjects, setSubjects] = useState([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
@@ -18,19 +21,25 @@ export function SubjectManager() {
     name: '',
     description: '',
     color: '#3B82F6',
-    icon: 'BookOpen'
+    icon: 'BookOpen',
+    class: selectedClass
   });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchSubjects();
-  }, []);
+  }, [selectedClass]);
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, class: selectedClass }));
+  }, [selectedClass]);
 
   const fetchSubjects = async () => {
     try {
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
+        .eq('class', selectedClass)
         .order('name');
 
       if (error) throw error;
@@ -62,10 +71,15 @@ export function SubjectManager() {
     e.preventDefault();
     
     try {
+      const subjectData = {
+        ...formData,
+        class: selectedClass
+      };
+
       if (editingSubject) {
         const { error } = await supabase
           .from('subjects')
-          .update(formData)
+          .update(subjectData)
           .eq('id', editingSubject.id);
 
         if (error) throw error;
@@ -76,7 +90,7 @@ export function SubjectManager() {
       } else {
         const { error } = await supabase
           .from('subjects')
-          .insert([formData]);
+          .insert([subjectData]);
 
         if (error) throw error;
         toast({
@@ -85,7 +99,7 @@ export function SubjectManager() {
         });
       }
 
-      setFormData({ name: '', description: '', color: '#3B82F6', icon: 'BookOpen' });
+      setFormData({ name: '', description: '', color: '#3B82F6', icon: 'BookOpen', class: selectedClass });
       setEditingSubject(null);
       setIsAddDialogOpen(false);
       fetchSubjects();
@@ -130,7 +144,8 @@ export function SubjectManager() {
       name: subject.name,
       description: subject.description || '',
       color: subject.color || '#3B82F6',
-      icon: subject.icon || 'BookOpen'
+      icon: subject.icon || 'BookOpen',
+      class: subject.class || selectedClass
     });
     setIsAddDialogOpen(true);
   };
@@ -138,7 +153,7 @@ export function SubjectManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manage Subjects</h2>
+        <h2 className="text-2xl font-bold">Manage Subjects - Class {selectedClass}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -150,7 +165,7 @@ export function SubjectManager() {
             <DialogHeader>
               <DialogTitle>{editingSubject ? 'Edit Subject' : 'Add New Subject'}</DialogTitle>
               <DialogDescription>
-                {editingSubject ? 'Update the subject details.' : 'Create a new subject for students to learn.'}
+                {editingSubject ? 'Update the subject details.' : `Create a new subject for Class ${selectedClass}.`}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -201,7 +216,7 @@ export function SubjectManager() {
                 <Button type="button" variant="outline" onClick={() => {
                   setIsAddDialogOpen(false);
                   setEditingSubject(null);
-                  setFormData({ name: '', description: '', color: '#3B82F6', icon: 'BookOpen' });
+                  setFormData({ name: '', description: '', color: '#3B82F6', icon: 'BookOpen', class: selectedClass });
                 }}>
                   Cancel
                 </Button>
@@ -234,7 +249,10 @@ export function SubjectManager() {
                     </Button>
                   </div>
                 </CardTitle>
-                <CardDescription>{subject.description}</CardDescription>
+                <CardDescription>
+                  {subject.description}
+                  <div className="text-xs text-gray-500 mt-1">Class {subject.class}</div>
+                </CardDescription>
               </CardHeader>
             </Card>
           );

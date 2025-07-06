@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,7 @@ interface Profile {
   premium_expires_at: string | null;
   referral_count: number;
   referred_by: string | null;
-  class: string | null; // ✅ Added class field
+  class: string | null;
 }
 
 interface AuthContextType {
@@ -32,6 +31,7 @@ interface AuthContextType {
   ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,6 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return data;
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      const profileData = await fetchProfile(user.id);
+      setProfile(profileData);
+    }
   };
 
   useEffect(() => {
@@ -131,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phone_number: phoneNumber,
             role: 'student',
             is_admin: false,
-            class: classValue || null, // ✅ Save class to metadata
+            class: classValue || '6',
           },
         },
       });
@@ -182,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       loading,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

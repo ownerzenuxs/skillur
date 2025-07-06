@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Plus, Edit, Trash2, Upload } from 'lucide-react';
 
-export function CardManager() {
+interface CardManagerProps {
+  selectedClass: string;
+}
+
+export function CardManager({ selectedClass }: CardManagerProps) {
   const [cards, setCards] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -24,20 +27,25 @@ export function CardManager() {
     chapter_id: '',
     order_index: 0,
     page_number: null,
-    pdf_url: ''
+    pdf_url: '',
+    class: selectedClass
   });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCards();
     fetchSubjects();
-  }, []);
+  }, [selectedClass]);
 
   useEffect(() => {
     if (selectedSubject) {
       fetchChaptersBySubject(selectedSubject);
     }
   }, [selectedSubject]);
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, class: selectedClass }));
+  }, [selectedClass]);
 
   const fetchCards = async () => {
     try {
@@ -52,6 +60,7 @@ export function CardManager() {
             )
           )
         `)
+        .eq('class', selectedClass)
         .order('order_index');
 
       if (error) throw error;
@@ -71,6 +80,7 @@ export function CardManager() {
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
+        .eq('class', selectedClass)
         .order('name');
 
       if (error) throw error;
@@ -86,6 +96,7 @@ export function CardManager() {
         .from('chapters')
         .select('*')
         .eq('subject_id', subjectId)
+        .eq('class', selectedClass)
         .order('order_index');
 
       if (error) throw error;
@@ -102,7 +113,8 @@ export function CardManager() {
       const cardData = {
         ...formData,
         title: formData.title || `Card ${formData.order_index + 1}`,
-        page_number: formData.page_number ? parseInt(formData.page_number) : null
+        page_number: formData.page_number ? parseInt(formData.page_number) : null,
+        class: selectedClass
       };
 
       if (editingCard) {
@@ -128,7 +140,7 @@ export function CardManager() {
         });
       }
 
-      setFormData({ title: '', description: '', chapter_id: '', order_index: 0, page_number: null, pdf_url: '' });
+      setFormData({ title: '', description: '', chapter_id: '', order_index: 0, page_number: null, pdf_url: '', class: selectedClass });
       setEditingCard(null);
       setIsAddDialogOpen(false);
       setSelectedSubject('');
@@ -176,7 +188,8 @@ export function CardManager() {
       chapter_id: card.chapter_id,
       order_index: card.order_index,
       page_number: card.page_number,
-      pdf_url: card.pdf_url || ''
+      pdf_url: card.pdf_url || '',
+      class: card.class || selectedClass
     });
     setIsAddDialogOpen(true);
   };
@@ -184,7 +197,7 @@ export function CardManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manage Cards</h2>
+        <h2 className="text-2xl font-bold">Manage Cards - Class {selectedClass}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -196,7 +209,7 @@ export function CardManager() {
             <DialogHeader>
               <DialogTitle>{editingCard ? 'Edit Card' : 'Add New Card'}</DialogTitle>
               <DialogDescription>
-                {editingCard ? 'Update the card details.' : 'Create a new learning card for a chapter.'}
+                {editingCard ? 'Update the card details.' : `Create a new learning card for Class ${selectedClass}.`}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -285,7 +298,7 @@ export function CardManager() {
                   setIsAddDialogOpen(false);
                   setEditingCard(null);
                   setSelectedSubject('');
-                  setFormData({ title: '', description: '', chapter_id: '', order_index: 0, page_number: null, pdf_url: '' });
+                  setFormData({ title: '', description: '', chapter_id: '', order_index: 0, page_number: null, pdf_url: '', class: selectedClass });
                 }}>
                   Cancel
                 </Button>
@@ -319,6 +332,7 @@ export function CardManager() {
               <CardDescription>
                 {card.chapters?.subjects?.name} - {card.chapters?.title}
                 {card.page_number && ` | Page ${card.page_number}`}
+                <div className="text-xs text-gray-500 mt-1">Class {card.class}</div>
               </CardDescription>
             </CardHeader>
             <CardContent>

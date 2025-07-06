@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Calculator, Beaker, Zap, Leaf, BookOpen, Globe, Monitor } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Subject {
   id: string;
@@ -11,22 +11,31 @@ interface Subject {
   description: string;
   icon: string;
   color: string;
+  class: string;
 }
 
 export function SubjectsSection() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, profile } = useAuth();
 
   useEffect(() => {
     fetchSubjects();
-  }, []);
+  }, [profile]);
 
   const fetchSubjects = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('subjects')
         .select('*')
         .order('name');
+
+      // If user is logged in and has a class, filter by class
+      if (user && profile?.class) {
+        query = query.eq('class', profile.class);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSubjects(data || []);
@@ -69,6 +78,11 @@ export function SubjectsSection() {
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Choose from our comprehensive collection of subjects and start your learning journey
+            {profile?.class && (
+              <span className="block text-lg text-yellow-600 font-medium mt-2">
+                Showing subjects for Class {profile.class}
+              </span>
+            )}
           </p>
         </div>
 
@@ -89,6 +103,11 @@ export function SubjectsSection() {
                   <CardContent>
                     <CardDescription className="text-center">
                       {subject.description || `Master the fundamentals of ${subject.name}`}
+                      {subject.class && (
+                        <div className="text-xs text-yellow-600 font-medium mt-2">
+                          Class {subject.class}
+                        </div>
+                      )}
                     </CardDescription>
                   </CardContent>
                 </Card>
@@ -101,7 +120,12 @@ export function SubjectsSection() {
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-black mb-2">No subjects available</h3>
-            <p className="text-gray-600">Subjects will be added by administrators soon.</p>
+            <p className="text-gray-600">
+              {profile?.class 
+                ? `Subjects for Class ${profile.class} will be added by administrators soon.`
+                : 'Subjects will be added by administrators soon.'
+              }
+            </p>
           </div>
         )}
       </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Plus, Edit, Trash2, Coins, Lock } from 'lucide-react';
 
-export function ChapterManager() {
+interface ChapterManagerProps {
+  selectedClass: string;
+}
+
+export function ChapterManager({ selectedClass }: ChapterManagerProps) {
   const [chapters, setChapters] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -21,14 +24,19 @@ export function ChapterManager() {
     description: '',
     subject_id: '',
     order_index: 0,
-    coin_price: ''
+    coin_price: '',
+    class: selectedClass
   });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchChapters();
     fetchSubjects();
-  }, []);
+  }, [selectedClass]);
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, class: selectedClass }));
+  }, [selectedClass]);
 
   const fetchChapters = async () => {
     try {
@@ -40,6 +48,7 @@ export function ChapterManager() {
             name
           )
         `)
+        .eq('class', selectedClass)
         .order('order_index');
 
       if (error) throw error;
@@ -59,6 +68,7 @@ export function ChapterManager() {
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
+        .eq('class', selectedClass)
         .order('name');
 
       if (error) throw error;
@@ -74,7 +84,8 @@ export function ChapterManager() {
     try {
       const chapterData = {
         ...formData,
-        coin_price: formData.coin_price ? parseInt(formData.coin_price) : null
+        coin_price: formData.coin_price ? parseInt(formData.coin_price) : null,
+        class: selectedClass
       };
 
       if (editingChapter) {
@@ -100,7 +111,7 @@ export function ChapterManager() {
         });
       }
 
-      setFormData({ title: '', description: '', subject_id: '', order_index: 0, coin_price: '' });
+      setFormData({ title: '', description: '', subject_id: '', order_index: 0, coin_price: '', class: selectedClass });
       setEditingChapter(null);
       setIsAddDialogOpen(false);
       fetchChapters();
@@ -146,7 +157,8 @@ export function ChapterManager() {
       description: chapter.description || '',
       subject_id: chapter.subject_id,
       order_index: chapter.order_index,
-      coin_price: chapter.coin_price ? chapter.coin_price.toString() : ''
+      coin_price: chapter.coin_price ? chapter.coin_price.toString() : '',
+      class: chapter.class || selectedClass
     });
     setIsAddDialogOpen(true);
   };
@@ -154,7 +166,7 @@ export function ChapterManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manage Chapters</h2>
+        <h2 className="text-2xl font-bold">Manage Chapters - Class {selectedClass}</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -166,7 +178,7 @@ export function ChapterManager() {
             <DialogHeader>
               <DialogTitle>{editingChapter ? 'Edit Chapter' : 'Add New Chapter'}</DialogTitle>
               <DialogDescription>
-                {editingChapter ? 'Update the chapter details.' : 'Create a new chapter within a subject.'}
+                {editingChapter ? 'Update the chapter details.' : `Create a new chapter for Class ${selectedClass}.`}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -228,7 +240,7 @@ export function ChapterManager() {
                 <Button type="button" variant="outline" onClick={() => {
                   setIsAddDialogOpen(false);
                   setEditingChapter(null);
-                  setFormData({ title: '', description: '', subject_id: '', order_index: 0, coin_price: '' });
+                  setFormData({ title: '', description: '', subject_id: '', order_index: 0, coin_price: '', class: selectedClass });
                 }}>
                   Cancel
                 </Button>
@@ -269,6 +281,7 @@ export function ChapterManager() {
               <CardDescription>
                 Subject: {chapter.subjects?.name} | Order: {chapter.order_index}
                 {chapter.coin_price && <span className="text-yellow-600"> | Locked Chapter</span>}
+                <div className="text-xs text-gray-500 mt-1">Class {chapter.class}</div>
               </CardDescription>
             </CardHeader>
             <CardContent>
